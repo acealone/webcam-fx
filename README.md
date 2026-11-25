@@ -6,7 +6,7 @@ Make a gesture in front of your camera and an effect plays on your video:
 | Gesture | Effect |
 |---------|--------|
 | **Two fingers to the forehead** — index and middle finger stretched, ring and pinky folded, fingertips against your forehead | **teleport** — you get torn by vertical slits, vanish for a moment, and come back the same way |
-| **Crossed fingers, plus sign** — stretched fingers of both hands crossing like a `+` (not an `x`): one hand's finger(s) pointing up, the other's sideways. Any fingers count | **clones** — smoke bursts left and right of you, two copies of you appear in it, stay a few seconds and vanish in smoke again |
+| **Crossed fingers, plus sign** — stretched fingers of both hands crossing like a `+` (not an `x`): one hand's finger(s) pointing up, the other's sideways. Any fingers count, and the upright hand may be hidden behind the other | **clones** — smoke bursts left and right of you, two copies of you appear in it, stay a few seconds and vanish in smoke again |
 
 It runs on Windows and Linux. Your webcam goes in, the processed picture goes out through a virtual camera
 (**OBS Virtual Camera** on Windows, **v4l2loopback** on Linux), which you select as the camera in Teams.

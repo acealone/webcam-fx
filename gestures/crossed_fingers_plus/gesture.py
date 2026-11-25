@@ -2,6 +2,8 @@
 
 Fuzzy on purpose: any stretched finger counts (thumb included), bent fingers are ignored. Tracking of two
 overlapping hands is imprecise, so angles get a generous tolerance and finger lines are extended a bit.
+A hand whose fingers are hidden behind the other hand still counts by its hand axis (wrist -> knuckles,
+continued to about the fingertips), but at least one side of the plus must be a real stretched finger.
 """
 import math
 
@@ -20,6 +22,13 @@ def finger_lines(hand, w, h):
     p = hand.landmark
     return [((p[b].x * w, p[b].y * h), (p[t].x * w, p[t].y * h))
             for b, j, t in FINGERS if _dist(p[t], p[0]) > _dist(p[j], p[0]) * STRETCHED]
+
+
+def hand_axis(hand, w, h):
+    """Pixel line from the middle knuckle onwards, as long as the palm: where the fingers would be."""
+    p = hand.landmark
+    wx, wy, kx, ky = p[0].x * w, p[0].y * h, p[9].x * w, p[9].y * h
+    return (kx, ky), (2 * kx - wx, 2 * ky - wy)
 
 
 def direction(p0, p1) -> float:
@@ -50,18 +59,22 @@ def _horizontal(line):
 
 def analyse(hands, w, h) -> dict:
     """Everything the gesture looks at, for detect() and the debug view."""
-    lines = [finger_lines(hd, w, h) for hd in hands]
+    fingers = [finger_lines(hd, w, h) for hd in hands]
+    axes = [hand_axis(hd, w, h) for hd in hands]
+    candidates = [[(ln, True) for ln in f] + [(ax, False)] for f, ax in zip(fingers, axes)]
     crossing = False
-    for i in range(len(lines)):
-        for k in range(i + 1, len(lines)):
-            for la in lines[i]:
-                for lb in lines[k]:
-                    if ((_vertical(la) and _horizontal(lb)) or (_horizontal(la) and _vertical(lb))) \
+    for i in range(len(hands)):
+        for k in range(i + 1, len(hands)):
+            for la, a_finger in candidates[i]:
+                for lb, b_finger in candidates[k]:
+                    if (a_finger or b_finger) \
+                            and ((_vertical(la) and _horizontal(lb)) or (_horizontal(la) and _vertical(lb))) \
                             and segments_cross(*_extend(la, MARGIN), *_extend(lb, MARGIN)):
                         crossing = True
-    flat = [ln for hand_lines in lines for ln in hand_lines]
-    return {"hands": len(hands), "fingers": [len(x) for x in lines],
+    flat = [ln for f in fingers for ln in f]
+    return {"hands": len(hands), "fingers": [len(f) for f in fingers],
             "vertical": sum(map(_vertical, flat)), "horizontal": sum(map(_horizontal, flat)),
+            "vertical_hands": sum(map(_vertical, axes)), "horizontal_hands": sum(map(_horizontal, axes)),
             "crossing": crossing}
 
 
@@ -79,5 +92,7 @@ class Gesture:
         h, w = ctx.frame.shape[:2]
         a = analyse(ctx.hands, w, h)
         fingers = "/".join(map(str, a["fingers"])) or "-"
-        return (f"plus: hands {a['hands']}, stretched fingers {fingers}, vertical {a['vertical']}, "
-                f"horizontal {a['horizontal']}, crossing {'yes' if a['crossing'] else 'no'}")
+        return (f"plus: hands {a['hands']}, stretched fingers {fingers}, "
+                f"vertical {a['vertical']} (+{a['vertical_hands']} hand), "
+                f"horizontal {a['horizontal']} (+{a['horizontal_hands']} hand), "
+                f"crossing {'yes' if a['crossing'] else 'no'}")

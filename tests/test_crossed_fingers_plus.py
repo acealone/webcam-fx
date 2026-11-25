@@ -103,3 +103,24 @@ def test_needs_hands_only():
 def test_plus_crossing_just_past_fingertips_detected():
     """Tracking of overlapping hands is imprecise: a crossing a few px beyond the fingertips still counts."""
     assert detect(VERTICAL, make_hand((250, 165), 0)) is True
+
+
+ALL_FINGERS = ((3, 4), (6, 8), (10, 12), (14, 16), (18, 20))
+
+
+def test_hidden_vertical_fingers_detected_by_hand_axis():
+    """Upright hand behind the other: tracking reports its covered fingers as bent, the palm still points up."""
+    hidden = fold(make_hand((320, 260), 90), *ALL_FINGERS)
+    assert detect(hidden, HORIZONTAL) is True
+
+
+def test_hand_axis_alone_on_both_sides_does_not_trigger():
+    """Two hand axes without any stretched finger (e.g. two fists) are not a plus."""
+    assert detect(fold(make_hand((320, 260), 90), *ALL_FINGERS), fold(make_hand((250, 190), 0), *ALL_FINGERS)) is False
+
+
+def test_debug_counts_hand_axes():
+    g = load_gesture("crossed_fingers_plus", {})
+    hidden = fold(make_hand((320, 260), 90), *ALL_FINGERS)
+    text = g.debug(NS(hands=[hidden, HORIZONTAL], frame=np.zeros((H, W, 3), np.uint8)))
+    assert "vertical 0 (+1 hand)" in text and "crossing yes" in text
