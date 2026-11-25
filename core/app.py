@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import pyvirtualcam
 
+from core import sound
 from core.background import Background
 from core.camera import open_camera
 from core.compose import blend
@@ -61,6 +62,8 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
     h, w = frame.shape[:2]
     detectors = Detectors.create()
     background = Background(background_path, frame)
+    if not sound.start():   # one shared audio output: no cut-off sounds, headset stays awake
+        print("No audio output via sounddevice - using the system player for sounds")
     active, debug, timing = None, False, {}
     printer = DebugPrinter()
 
@@ -145,5 +148,6 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
                     background.start_capture(now)
                 background.update(frame, now)
     finally:
+        sound.stop()
         cap.release()
         cv2.destroyAllWindows()

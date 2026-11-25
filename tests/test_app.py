@@ -60,3 +60,21 @@ def test_debug_printer_prints_at_most_twice_per_second(capsys):
 def test_debug_printer_silent_without_lines(capsys):
     app.DebugPrinter().maybe_print([], now=1.0)
     assert capsys.readouterr().out == ""
+
+
+def test_run_opens_audio_at_start_and_closes_it(monkeypatch, tmp_path):
+    """The audio output is opened before the first effect (headset awake) and closed at the end."""
+    calls = []
+    monkeypatch.setattr(app.sound, "start", lambda: calls.append("start") or True)
+    monkeypatch.setattr(app.sound, "stop", lambda: calls.append("stop"))
+    frame = np.zeros((48, 64, 3), np.uint8)
+    monkeypatch.setattr(app, "open_camera", lambda *a: (NS(release=lambda: None), frame))
+    monkeypatch.setattr(app.Detectors, "create", classmethod(lambda cls: cls()))
+
+    def no_virtual_cam(*a, **k):
+        raise RuntimeError("no virtual camera")
+
+    monkeypatch.setattr(app.pyvirtualcam, "Camera", no_virtual_cam)
+    with pytest.raises(SystemExit):
+        app.run(load_config(REPO_ROOT / "config.toml"), tmp_path / "bg.png")
+    assert calls == ["start", "stop"]

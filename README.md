@@ -58,7 +58,8 @@ fingers to your head doesn't teleport you again and again.
 ## Linux
 
 Tested setup: Python 3.12 via [uv](https://docs.astral.sh/uv/), the `v4l2loopback` kernel module as virtual
-camera, PipeWire/PulseAudio/ALSA for sound (`pw-play`, `paplay` or `aplay` — usually already installed).
+camera, PortAudio for sound (all effect sounds through one open audio output, so nothing gets cut off; without
+it the system player `pw-play`, `paplay` or `aplay` is used).
 `mediapipe` 0.10.21 has no packages for Python 3.13+, which is why uv fetches Python 3.12 for this project.
 
 ### 1. Install the packages
@@ -67,19 +68,19 @@ The kernel module is built for your kernel (DKMS), so the **headers of the kerne
 
 **Arch Linux**
 ```bash
-sudo pacman -S --needed uv v4l2loopback-dkms v4l-utils linux-headers   # linux-lts -> linux-lts-headers, linux-zen -> linux-zen-headers
+sudo pacman -S --needed uv v4l2loopback-dkms v4l-utils portaudio linux-headers   # linux-lts -> linux-lts-headers, linux-zen -> linux-zen-headers
 ```
 
 **CachyOS**
 ```bash
-sudo pacman -S --needed uv v4l2loopback-dkms v4l-utils linux-cachyos-headers
+sudo pacman -S --needed uv v4l2loopback-dkms v4l-utils portaudio linux-cachyos-headers
 # other CachyOS kernels need their own headers, e.g. linux-cachyos-lts -> linux-cachyos-lts-headers
 # (pacman -Q | grep linux-cachyos shows which kernel you have)
 ```
 
 **Ubuntu / Debian**
 ```bash
-sudo apt install v4l2loopback-dkms v4l-utils linux-headers-$(uname -r)
+sudo apt install v4l2loopback-dkms v4l-utils libportaudio2 linux-headers-$(uname -r)
 curl -LsSf https://astral.sh/uv/install.sh | sh      # or: pipx install uv
 ```
 
@@ -87,7 +88,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh      # or: pipx install uv
 ```bash
 # v4l2loopback comes from RPM Fusion (free)
 sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-sudo dnf install v4l2loopback v4l-utils uv
+sudo dnf install v4l2loopback v4l-utils portaudio uv
 ```
 
 With **Secure Boot** enabled, the freshly built kernel module must be signed (DKMS/akmods guide you through
