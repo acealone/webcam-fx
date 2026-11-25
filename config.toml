@@ -8,8 +8,11 @@ fps = 30
 
 # Sounds: mixer = true plays all effect sounds through one audio output that stays open (no cut-off
 # sounds). Set it to false to use the system player instead (one sound at a time).
+# keep_alive = true sends inaudible noise (about -80 dB) during pauses, so wireless headsets don't fall
+# asleep and swallow the beginning of the next sound.
 [sound]
 mixer = true
+keep_alive = true
 
 # Which gesture starts which effect. The first matching trigger wins.
 # hold  = seconds the gesture must be held

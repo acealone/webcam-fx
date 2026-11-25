@@ -18,14 +18,22 @@ PLATFORM = sys.platform
 LINUX_PLAYERS = ("pw-play", "paplay", "aplay")   # PipeWire, PulseAudio, ALSA
 SAMPLE_RATE = 44100
 VERBOSE = False   # the app switches this on together with the debug view: one terminal line per sound
+KEEP_ALIVE = 1e-4   # level of the inaudible noise (about -80 dB) sent during pauses
 
 
 class Mixer:
-    """Sums all sounds that are currently playing. mix() is called from the audio thread."""
+    """Sums all sounds that are currently playing. mix() is called from the audio thread.
 
-    def __init__(self):
+    keep_alive > 0 adds inaudible noise at that level: wireless headsets/dongles put the link to sleep on
+    pure digital silence and then swallow the beginning of the next sound."""
+
+    def __init__(self, keep_alive: float = 0.0):
         self._lock = threading.Lock()
         self._voices = []   # [samples, position]
+        self.keep_alive = keep_alive
+        self._noise = (np.random.default_rng(0).uniform(-keep_alive, keep_alive, SAMPLE_RATE).astype(np.float32)
+                       if keep_alive > 0 else None)
+        self._noise_pos = 0
 
     @property
     def active(self) -> int:
@@ -38,6 +46,10 @@ class Mixer:
 
     def mix(self, frames: int) -> np.ndarray:
         out = np.zeros(frames, np.float32)
+        if self._noise is not None:                       # cycle through one second of pre-made noise
+            idx = (self._noise_pos + np.arange(frames)) % len(self._noise)
+            out += self._noise[idx]
+            self._noise_pos = (self._noise_pos + frames) % len(self._noise)
         with self._lock:
             for voice in self._voices:
                 samples, pos = voice
@@ -71,7 +83,7 @@ _reason = ""
 _cache = {}
 
 
-def start(use_mixer: bool = True) -> bool:
+def start(use_mixer: bool = True, keep_alive: bool = True) -> bool:
     """Open the shared audio output (once). True if the mixer runs, False -> fallback players are used."""
     global _mixer, _stream, _failed, _reason
     if _mixer is not None:
@@ -82,7 +94,7 @@ def start(use_mixer: bool = True) -> bool:
         _failed, _reason = True, "mixer switched off in config.toml"
         return False
     try:
-        mixer = Mixer()
+        mixer = Mixer(KEEP_ALIVE if keep_alive else 0.0)
         _stream = STREAM_FACTORY(mixer)
         _mixer = mixer
         return True
@@ -96,8 +108,9 @@ def status() -> str:
     if _mixer is None:
         return f"sound: system player ({_reason or 'mixer not started'})"
     active = "yes" if getattr(_stream, "active", True) else "NO"
+    keep = "on" if _mixer.keep_alive > 0 else "off"
     return (f"sound: mixer on '{getattr(_stream, 'device_name', '?')}', output active {active}, "
-            f"playing {_mixer.active}")
+            f"keep-alive {keep}, playing {_mixer.active}")
 
 
 def stop() -> None:

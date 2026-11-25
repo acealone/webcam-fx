@@ -20,7 +20,7 @@ def test_defaults_filled(tmp_path):
     assert cfg["triggers"][0]["rearm"] == 0.5
     assert cfg["gestures"] == {}
     assert cfg["effects"] == {}
-    assert cfg["sound"] == {"mixer": True}
+    assert cfg["sound"] == {"mixer": True, "keep_alive": True}
 
 
 def test_values_override_defaults(tmp_path):

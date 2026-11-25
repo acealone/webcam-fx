@@ -47,5 +47,5 @@ def load_config(path: Path) -> dict:
         "triggers": triggers,
         "gestures": raw.get("gestures", {}),
         "effects": raw.get("effects", {}),
-        "sound": {"mixer": True, **raw.get("sound", {})},
+        "sound": {"mixer": True, "keep_alive": True, **raw.get("sound", {})},
     }

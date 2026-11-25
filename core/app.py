@@ -62,7 +62,7 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
     h, w = frame.shape[:2]
     detectors = Detectors.create()
     background = Background(background_path, frame)
-    sound.start(config["sound"]["mixer"])   # one shared audio output: no cut-off sounds, headset stays awake
+    sound.start(config["sound"]["mixer"], config["sound"]["keep_alive"])   # one shared output, headset kept awake
     print(sound.status())
     active, debug, timing = None, False, {}
     printer = DebugPrinter()

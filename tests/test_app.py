@@ -65,7 +65,7 @@ def test_debug_printer_silent_without_lines(capsys):
 def test_run_opens_audio_at_start_and_closes_it(monkeypatch, tmp_path):
     """The audio output is opened before the first effect (headset awake) and closed at the end."""
     calls = []
-    monkeypatch.setattr(app.sound, "start", lambda use_mixer=True: calls.append("start") or True)
+    monkeypatch.setattr(app.sound, "start", lambda use_mixer=True, keep_alive=True: calls.append("start") or True)
     monkeypatch.setattr(app.sound, "stop", lambda: calls.append("stop"))
     frame = np.zeros((48, 64, 3), np.uint8)
     monkeypatch.setattr(app, "open_camera", lambda *a: (NS(release=lambda: None), frame))

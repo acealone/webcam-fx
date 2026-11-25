@@ -183,3 +183,26 @@ def test_verbose_prints_each_sound_and_its_path(tmp_path, fake_mixer, monkeypatc
 def test_quiet_by_default(tmp_path, fake_mixer, capsys):
     play(write_wav(tmp_path / "zip.wav", np.zeros(100)))
     assert capsys.readouterr().out == ""
+
+
+def test_keep_alive_never_outputs_digital_silence():
+    """Wireless headsets put the link to sleep on pure zeros and then swallow the start of the next sound."""
+    out = Mixer(keep_alive=1e-4).mix(1000)
+    assert np.count_nonzero(out) > 990
+    assert np.abs(out).max() <= 1e-4                       # about -80 dB: inaudible
+
+
+def test_without_keep_alive_silence_is_exact():
+    assert not Mixer().mix(1000).any()
+
+
+def test_start_uses_keep_alive_by_default(fake_mixer):
+    core.sound.start()
+    assert fake_mixer["mixer"].keep_alive > 0
+    assert "keep-alive on" in core.sound.status()
+
+
+def test_keep_alive_can_be_switched_off(fake_mixer):
+    core.sound.start(keep_alive=False)
+    assert fake_mixer["mixer"].keep_alive == 0
+    assert "keep-alive off" in core.sound.status()

@@ -179,6 +179,8 @@ background) into `effects/log/` — it is scaled to your height.
 Sounds play through one audio output that stays open (`[sound] mixer = true`), so they don't cut each
 other off and wireless headsets don't swallow their beginning. The terminal shows the output at startup
 (`sound: mixer on '...'`). With `mixer = false` the system player is used instead (one sound at a time).
+`keep_alive = true` sends inaudible noise (about -80 dB) during pauses so wireless headsets don't fall asleep
+and swallow the beginning of the next sound; switch it off if you ever hear a faint hiss.
 
 If several triggers match at the same moment, the first one in the file wins. Only one effect runs at a time.
 Settings for a gesture go in `[gestures.<name>]`, the same way.
