@@ -3,15 +3,16 @@
 Lenient on purpose: any stretched finger pointing up counts, and a hand whose fingers are hidden behind
 the other counts by its hand axis, but at least one real finger must point up.
 
-Hands pressed together are often tracked as ONE hand. A single hand counts only if it looks like that:
-pointing up, seen from the side (narrow knuckle row - a normal "peace" sign shows the palm, which is wide)
-and in front of the chest (below the face, roughly centred under it).
+Hands pressed together are often tracked as ONE hand. A single hand counts only if it is pointing up, in
+front of the chest (below the face, roughly centred under it) and its knuckle row looks narrower than a
+normal "peace" sign's (threshold from measured readouts, see SIDE).
 """
 from core.hands import direction, finger_lines, hand_axis, palm_length
 
 TOLERANCE = 35   # degrees away from exactly vertical that still count
 CLOSE = 1.5      # knuckles of both hands at most this many palm lengths apart
-SIDE = 0.55      # single hand: knuckle row (index..pinky) at most this many palm lengths wide
+SIDE = 0.70      # single hand: knuckle row (index..pinky) at most this many palm lengths wide.
+                 # Measured live: this gesture tracked as one hand 0.51-0.67, a peace sign 0.76-0.79.
 UNDER = 0.75     # single hand: at most this many face widths left/right of the face centre
 
 

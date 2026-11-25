@@ -88,3 +88,15 @@ def test_debug_shows_single_hand_checks():
 
 def test_needs_face_and_hands():
     assert load_gesture("fingers_together_up", {}).needs == {"hands", "face"}
+
+
+# Thresholds from the user's measured readout (2026-11-25): gesture tracked as one hand had side 0.51-0.67,
+# a peace sign in front of the chest 0.76-0.79.
+def test_measured_gesture_width_detected():
+    hand = make_hand((320, 300), 90, spread=0.75)              # side ~0.64
+    assert detect(hand) is True
+
+
+def test_measured_peace_sign_width_not_detected():
+    hand = make_hand((320, 300), 90, spread=0.93)              # side ~0.78, even when held under the face
+    assert detect(hand) is False
