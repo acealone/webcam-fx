@@ -15,6 +15,13 @@ effect = "teleport"
 hold = 0.3
 rearm = 0.5
 
+# before the plus: hands pressed together can look like a plus too (a thumb sticking out sideways)
+[[triggers]]
+gesture = "fingers_together_up"
+effect = "log"
+hold = 0.3
+rearm = 0.5
+
 [[triggers]]
 gesture = "crossed_fingers_plus"
 effect = "clones"
@@ -29,4 +36,8 @@ gone = 2.5    # seconds you stay invisible
 duration = 4.0   # seconds the clones stay
 scale = 0.85     # clone size (they stand a bit further back)
 offset = 0.32    # distance from the centre, as a fraction of the picture width
+smoke = 0.6      # seconds per smoke burst
+
+[effects.log]
+duration = 3.0   # seconds you stay a log
 smoke = 0.6      # seconds per smoke burst

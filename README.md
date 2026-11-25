@@ -7,6 +7,7 @@ Make a gesture in front of your camera and an effect plays on your video:
 |---------|--------|
 | **Two fingers to the forehead** — index and middle finger stretched, ring and pinky folded, fingertips against your forehead | **teleport** — you get torn by vertical slits, vanish for a moment, and come back the same way |
 | **Crossed fingers, plus sign** — stretched fingers of both hands crossing like a `+` (not an `x`): one hand's finger(s) pointing up, the other's sideways. Any fingers count, and the upright hand may be hidden behind the other | **clones** — smoke bursts left and right of you, two copies of you appear in it, stay a few seconds and vanish in smoke again |
+| **Fingers together, pointing up** — both hands pressed together in front of your chest, stretched fingers of both hands pointing up side by side | **log** — a smoke bomb goes off, a wooden log stands where you were, and after a few seconds another smoke bomb brings you back |
 
 It runs on Windows and Linux. Your webcam goes in, the processed picture goes out through a virtual camera
 (**OBS Virtual Camera** on Windows, **v4l2loopback** on Linux), which you select as the camera in Teams.
@@ -148,6 +149,10 @@ effect = "teleport"                # folder name in effects/
 hold = 0.3                         # seconds the gesture must be held
 rearm = 0.5                        # seconds the gesture must be gone before it can trigger again
 
+[[triggers]]                       # before the plus: pressed-together hands can look like a plus too
+gesture = "fingers_together_up"
+effect = "log"
+
 [[triggers]]
 gesture = "crossed_fingers_plus"
 effect = "clones"
@@ -161,7 +166,14 @@ duration = 4.0                     # seconds the clones stay
 scale = 0.85                       # clone size (they stand a bit further back)
 offset = 0.32                      # distance from the centre, as a fraction of the width
 smoke = 0.6                        # seconds per smoke burst
+
+[effects.log]
+duration = 3.0                     # seconds you stay a log
+smoke = 0.6
 ```
+
+The log is drawn by code. To use your own picture instead, put a `log.png` (ideally with a transparent
+background) into `effects/log/` — it is scaled to your height.
 
 If several triggers match at the same moment, the first one in the file wins. Only one effect runs at a time.
 Settings for a gesture go in `[gestures.<name>]`, the same way.

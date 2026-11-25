@@ -43,7 +43,10 @@ def test_repo_config_loads():
     assert cfg["triggers"][0]["effect"] == "teleport"
     assert cfg["effects"]["teleport"] == {"fade": 0.35, "gone": 2.5}
     assert (cfg["camera"]["width"], cfg["camera"]["height"]) == (640, 360)
-    assert (cfg["triggers"][1]["gesture"], cfg["triggers"][1]["effect"]) == ("crossed_fingers_plus", "clones")
+    pairs = [(t["gesture"], t["effect"]) for t in cfg["triggers"]]
+    assert pairs == [("two_fingers_forehead", "teleport"), ("fingers_together_up", "log"),
+                     ("crossed_fingers_plus", "clones")]      # together before plus: it can look like a plus too
+    assert cfg["effects"]["log"] == {"duration": 3.0, "smoke": 0.6}
     assert cfg["effects"]["clones"] == {"duration": 4.0, "scale": 0.85, "offset": 0.32, "smoke": 0.6}
 
 

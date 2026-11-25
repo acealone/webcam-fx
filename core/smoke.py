@@ -7,9 +7,9 @@ import numpy as np
 SMOKE_COLOR = np.array((225, 225, 230), np.float32)   # BGR, light grey
 
 
-def smoke_alpha(shape_hw, centers, progress: float, seed, spread=(0.12, 0.30)):
+def smoke_alpha(shape_hw, centers, progress: float, seed, spread=(0.12, 0.30), puffs=22):
     """Soft smoke puffs around each centre. progress 0..1: puffs grow and drift out, opacity fades.
-    spread: half-size of each cloud as a share of (width, height).
+    spread: half-size of each cloud as a share of (width, height); puffs: puffs per cloud.
     Drawn at quarter resolution and scaled up: the smoke is soft anyway, and it's 16x less work."""
     h, w = shape_hw
     q = 4
@@ -17,7 +17,7 @@ def smoke_alpha(shape_hw, centers, progress: float, seed, spread=(0.12, 0.30)):
     spread_x, spread_y = spread[0] * w / q, spread[1] * h / q
     layer = np.zeros((h // q, w // q), np.float32)
     for cx, cy in centers:
-        for _ in range(22):
+        for _ in range(puffs):
             ox, oy = rng.uniform(-1, 1) * spread_x, rng.uniform(-1, 1) * spread_y
             drift = 0.7 + 0.5 * progress                  # puffs drift outwards
             r = h / q * rng.uniform(0.08, 0.14) * (0.7 + 0.8 * progress)

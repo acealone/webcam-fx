@@ -25,3 +25,9 @@ def test_paint_only_touches_the_alpha_box():
     paint(canvas, SMOKE_COLOR, alpha)
     assert (canvas[15, 35] == SMOKE_COLOR).all()
     assert canvas[100, 100].max() == 0
+
+
+def test_more_puffs_cover_more():
+    few = smoke_alpha((H, W), [(320, 180)], 0.25, 2.0, spread=(0.14, 0.38), puffs=10)
+    many = smoke_alpha((H, W), [(320, 180)], 0.25, 2.0, spread=(0.14, 0.38), puffs=45)
+    assert (many > 0.4).sum() > 1.5 * (few > 0.4).sum()
