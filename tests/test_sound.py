@@ -168,3 +168,18 @@ def test_mixer_can_be_switched_off(tmp_path, fake_mixer, monkeypatch):
     monkeypatch.setattr(core.sound.subprocess, "Popen", lambda args, **kw: started.append(args))
     play(wav)
     assert started == [["/usr/bin/aplay", str(wav)]] and "mixer" not in fake_mixer
+
+
+def test_verbose_prints_each_sound_and_its_path(tmp_path, fake_mixer, monkeypatch, capsys):
+    wav = write_wav(tmp_path / "zip.wav", np.zeros(15435))
+    monkeypatch.setattr(core.sound, "VERBOSE", True)
+    play(wav)
+    play(tmp_path / "missing.wav")
+    out = capsys.readouterr().out
+    assert "sound: zip.wav via mixer (0.35 s)" in out
+    assert "sound: missing.wav not found" in out
+
+
+def test_quiet_by_default(tmp_path, fake_mixer, capsys):
+    play(write_wav(tmp_path / "zip.wav", np.zeros(100)))
+    assert capsys.readouterr().out == ""

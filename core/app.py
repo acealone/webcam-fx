@@ -144,6 +144,7 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
                     break
                 if key == ord("d"):
                     debug = not debug
+                    sound.VERBOSE = debug
                 if key == ord("b"):
                     background.start_capture(now)
                 background.update(frame, now)

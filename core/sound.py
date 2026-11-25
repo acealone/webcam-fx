@@ -17,6 +17,7 @@ import numpy as np
 PLATFORM = sys.platform
 LINUX_PLAYERS = ("pw-play", "paplay", "aplay")   # PipeWire, PulseAudio, ALSA
 SAMPLE_RATE = 44100
+VERBOSE = False   # the app switches this on together with the debug view: one terminal line per sound
 
 
 class Mixer:
@@ -129,17 +130,28 @@ def load(path: Path) -> np.ndarray:
     return _cache[key]
 
 
+def _log(text: str) -> None:
+    if VERBOSE:
+        import time
+        now = time.time()
+        print(f"{time.strftime('%H:%M:%S', time.localtime(now))}.{int(now * 10) % 10}  sound: {text}", flush=True)
+
+
 def play(path: Path) -> None:
     """Start playing a WAV and return immediately. Missing file, player or audio device: silent."""
     path = Path(path)
     if not path.is_file():
+        _log(f"{path.name} not found")
         return
     if start():
         try:
-            _mixer.add(load(path))
+            samples = load(path)
+            _mixer.add(samples)
+            _log(f"{path.name} via mixer ({len(samples) / SAMPLE_RATE:.2f} s)")
             return
-        except Exception:   # unreadable / unsupported WAV: let the fallback player try
-            pass
+        except Exception as e:   # unreadable / unsupported WAV: let the fallback player try
+            _log(f"{path.name} not playable by the mixer ({e}), trying the system player")
+    _log(f"{path.name} via system player")
     _play_fallback(path)
 
 
