@@ -8,11 +8,11 @@ from core.plugins import load_gesture
 W, H = 640, 360
 
 
-def make_hand(base, angle_deg, length=90, open_hand=False, w=W, h=H):
+def make_hand(base, angle_deg, length=90, open_hand=False, w=W, h=H, spread=1.0):
     """21 relative landmarks: wrist at base (px), index+middle along angle (0 = right, 90 = up)."""
     a = math.radians(angle_deg)
     ux, uy = math.cos(a), -math.sin(a)                 # image y grows downwards
-    px, py = -uy, ux                                   # sideways, to separate index and middle
+    px, py = -uy * spread, ux * spread                 # sideways, to separate the fingers (small = seen from the side)
     bx, by = base
 
     def at(frac, side):
