@@ -7,6 +7,7 @@ import numpy as np
 
 from core import sound
 from core.compose import blend
+from core.config import check_number
 
 
 def tear(img, m, amount, seed):
@@ -53,8 +54,8 @@ def tear(img, m, amount, seed):
 
 class Effect:
     def __init__(self, settings: dict, folder: Path):
-        self.fade = settings.get("fade", 0.35)   # seconds to vanish / reappear
-        self.gone = settings.get("gone", 2.5)    # seconds invisible
+        self.fade = check_number(settings.get("fade", 0.35), "effects.teleport.fade", positive=True)  # vanish/reappear
+        self.gone = check_number(settings.get("gone", 2.5), "effects.teleport.gone")  # seconds invisible
         self.folder = Path(folder)
         self.state, self.t_state = "done", 0.0
 

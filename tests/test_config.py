@@ -42,3 +42,22 @@ def test_repo_config_loads():
     assert cfg["triggers"][0]["gesture"] == "two_fingers_forehead"
     assert cfg["triggers"][0]["effect"] == "teleport"
     assert cfg["effects"]["teleport"] == {"fade": 0.35, "gone": 2.5}
+
+
+def test_single_bracket_triggers_raises(tmp_path):
+    with pytest.raises(ConfigError) as err:
+        load_config(write(tmp_path, '[triggers]\ngesture = "g"\neffect = "e"\n'))
+    assert "[[triggers]]" in str(err.value)
+
+
+def test_non_string_gesture_raises(tmp_path):
+    with pytest.raises(ConfigError) as err:
+        load_config(write(tmp_path, '[[triggers]]\ngesture = 5\neffect = "e"\n'))
+    assert "gesture" in str(err.value)
+
+
+@pytest.mark.parametrize("value", ['"0.3"', "-1", "true"])
+def test_hold_must_be_positive_number(tmp_path, value):
+    with pytest.raises(ConfigError) as err:
+        load_config(write(tmp_path, f'[[triggers]]\ngesture = "g"\neffect = "e"\nhold = {value}\n'))
+    assert "hold" in str(err.value)

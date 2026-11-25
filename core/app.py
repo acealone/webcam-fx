@@ -39,7 +39,12 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
         return t1
 
     try:
-        with pyvirtualcam.Camera(w, h, cam_cfg["fps"], fmt=pyvirtualcam.PixelFormat.BGR) as cam:
+        try:
+            virtual_cam = pyvirtualcam.Camera(w, h, cam_cfg["fps"], fmt=pyvirtualcam.PixelFormat.BGR)
+        except RuntimeError as e:
+            raise SystemExit(f"Could not start OBS Virtual Camera ({e}). Install OBS Studio; "
+                             "if OBS is open, stop its own virtual camera.") from None
+        with virtual_cam as cam:
             print(f"Streaming to {cam.device}. {KEYS_HELP}")
             while True:
                 t0 = time.perf_counter()

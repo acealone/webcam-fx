@@ -68,3 +68,10 @@ def test_loads_via_plugins():
     assert load_gesture("two_fingers_forehead", {}) is not None
     eff = load_effect("teleport", {"fade": 0.35, "gone": 2.5})
     assert (eff.folder / "teleport_out.wav").is_file()
+
+
+@pytest.mark.parametrize("settings", [{"fade": 0}, {"gone": -1}, {"fade": "0.35"}])
+def test_bad_timing_settings_rejected_at_load(settings):
+    from core.config import ConfigError
+    with pytest.raises(ConfigError):
+        load_effect("teleport", settings)

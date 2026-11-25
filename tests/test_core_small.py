@@ -34,3 +34,15 @@ def test_face_uses_cache_when_detection_missing():
     rgb = np.zeros((4, 4, 3), np.uint8)
     assert det.face(rgb) == (0.1, 0.2, 0.3, 0.4)
     assert det.face(rgb) == (0.1, 0.2, 0.3, 0.4)
+
+
+def test_play_unplayable_is_silent(tmp_path, monkeypatch):
+    import winsound
+
+    def fail(*args):
+        raise RuntimeError("Failed to play sound")
+
+    monkeypatch.setattr(winsound, "PlaySound", fail)
+    wav = tmp_path / "broken.wav"
+    wav.write_bytes(b"RIFF....not really")
+    play(wav)

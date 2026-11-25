@@ -7,4 +7,7 @@ import winsound
 def play(path: Path) -> None:
     path = Path(path)
     if path.is_file():
-        winsound.PlaySound(str(path), winsound.SND_FILENAME | winsound.SND_ASYNC)
+        try:
+            winsound.PlaySound(str(path), winsound.SND_FILENAME | winsound.SND_ASYNC)
+        except RuntimeError:   # broken file or no audio device: the effect goes on silently
+            pass
