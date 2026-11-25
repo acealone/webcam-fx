@@ -5,47 +5,10 @@ overlapping hands is imprecise, so angles get a generous tolerance and finger li
 A hand whose fingers are hidden behind the other hand still counts by its hand axis (wrist -> knuckles,
 continued to about the fingertips), but at least one side of the plus must be a real stretched finger.
 """
-import math
+from core.hands import direction, extend, finger_lines, hand_axis, segments_cross
 
 TOLERANCE = 35   # degrees away from exactly vertical / horizontal that still count
 MARGIN = 0.25    # finger lines are extended by this share at both ends
-STRETCHED = 1.1  # tip must be this much farther from the wrist than the middle joint
-FINGERS = ((2, 3, 4), (5, 6, 8), (9, 10, 12), (13, 14, 16), (17, 18, 20))   # (base, middle joint, tip)
-
-
-def _dist(a, b):
-    return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2) ** 0.5
-
-
-def finger_lines(hand, w, h):
-    """Pixel lines (base -> tip) of all stretched fingers of a hand."""
-    p = hand.landmark
-    return [((p[b].x * w, p[b].y * h), (p[t].x * w, p[t].y * h))
-            for b, j, t in FINGERS if _dist(p[t], p[0]) > _dist(p[j], p[0]) * STRETCHED]
-
-
-def hand_axis(hand, w, h):
-    """Pixel line from the middle knuckle onwards, as long as the palm: where the fingers would be."""
-    p = hand.landmark
-    wx, wy, kx, ky = p[0].x * w, p[0].y * h, p[9].x * w, p[9].y * h
-    return (kx, ky), (2 * kx - wx, 2 * ky - wy)
-
-
-def direction(p0, p1) -> float:
-    """Direction of a pixel line in degrees 0..180: 0 = horizontal, 90 = vertical."""
-    return math.degrees(math.atan2(-(p1[1] - p0[1]), p1[0] - p0[0])) % 180
-
-
-def _extend(line, margin):
-    (x0, y0), (x1, y1) = line
-    ex, ey = (x1 - x0) * margin, (y1 - y0) * margin
-    return (x0 - ex, y0 - ey), (x1 + ex, y1 + ey)
-
-
-def segments_cross(p1, p2, q1, q2) -> bool:
-    def orient(a, b, c):
-        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
-    return (orient(p1, p2, q1) * orient(p1, p2, q2) < 0) and (orient(q1, q2, p1) * orient(q1, q2, p2) < 0)
 
 
 def _vertical(line):
@@ -69,7 +32,7 @@ def analyse(hands, w, h) -> dict:
                 for lb, b_finger in candidates[k]:
                     if (a_finger or b_finger) \
                             and ((_vertical(la) and _horizontal(lb)) or (_horizontal(la) and _vertical(lb))) \
-                            and segments_cross(*_extend(la, MARGIN), *_extend(lb, MARGIN)):
+                            and segments_cross(*extend(la, MARGIN), *extend(lb, MARGIN)):
                         crossing = True
     flat = [ln for f in fingers for ln in f]
     return {"hands": len(hands), "fingers": [len(f) for f in fingers],
