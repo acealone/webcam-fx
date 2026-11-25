@@ -1,5 +1,4 @@
 """Clones: smoke bursts left and right, two live copies of you appear, stay, and vanish in smoke."""
-import random
 from pathlib import Path
 
 import cv2
@@ -8,9 +7,7 @@ import numpy as np
 from core import sound
 from core.compose import blend
 from core.config import check_number
-
-SMOKE_COLOR = np.array((225, 225, 230), np.float32)   # BGR, light grey
-
+from core.smoke import SMOKE_COLOR, paint, smoke_alpha
 
 def place_clone(frame, mask, scale: float, dx: float):
     """Copy of the picture, scaled around the horizontal centre, standing on the bottom edge, shifted dx px."""
@@ -19,36 +16,6 @@ def place_clone(frame, mask, scale: float, dx: float):
     img = cv2.warpAffine(frame, m, (w, h), flags=cv2.INTER_LINEAR, borderValue=0)
     msk = cv2.warpAffine(mask[..., 0], m, (w, h), flags=cv2.INTER_LINEAR, borderValue=0)
     return img, msk[..., None]
-
-
-def smoke_alpha(shape_hw, centers, progress: float, seed):
-    """Soft smoke puffs around each centre. progress 0..1: puffs grow and drift out, opacity fades.
-    Drawn at quarter resolution and scaled up: the smoke is soft anyway, and it's 16x less work."""
-    h, w = shape_hw
-    q = 4
-    rng = random.Random(seed)
-    spread_x, spread_y = 0.12 * w / q, 0.30 * h / q        # cloud about the size of a clone's body
-    layer = np.zeros((h // q, w // q), np.float32)
-    for cx, cy in centers:
-        for _ in range(22):
-            ox, oy = rng.uniform(-1, 1) * spread_x, rng.uniform(-1, 1) * spread_y
-            drift = 0.7 + 0.5 * progress                  # puffs drift outwards
-            r = h / q * rng.uniform(0.08, 0.14) * (0.7 + 0.8 * progress)
-            cv2.circle(layer, (int(cx / q + ox * drift), int(cy / q + oy * drift)), max(1, int(r)), 1.0, -1)
-    layer = cv2.GaussianBlur(layer, (0, 0), max(1.0, h / q * 0.03))
-    layer = cv2.resize(layer, (w, h), interpolation=cv2.INTER_LINEAR)
-    opacity = min(1.0, 4 * progress) * (1 - progress) ** 0.8   # dense quickly, thins out towards the end
-    return np.clip(layer, 0, 1) * opacity
-
-
-def _paint(canvas, top, alpha):
-    """canvas += (top - canvas) * alpha, only inside the box where alpha > 0 (much less work)."""
-    x, y, bw, bh = cv2.boundingRect((alpha > 0.004).astype(np.uint8))
-    if bw == 0:
-        return
-    roi = canvas[y:y + bh, x:x + bw]
-    t = top[y:y + bh, x:x + bw] if top.ndim == 3 else top
-    roi += (t - roi) * alpha[y:y + bh, x:x + bw, None]
 
 
 class Effect:
@@ -90,8 +57,8 @@ class Effect:
                 target = w / 2 + side * self.offset * w
                 dx = target - (self.scale * you_x + (1 - self.scale) * w / 2)
                 img, m = place_clone(frame, mask, self.scale, dx)
-                _paint(canvas, img, m[..., 0] * alpha)
+                paint(canvas, img, m[..., 0] * alpha)
         if phase != "shown":
             centers = [(w / 2 + side * self.offset * w, 0.55 * h) for side in (-1, 1)]
-            _paint(canvas, SMOKE_COLOR, smoke_alpha((h, w), centers, p, self.t0 + (0 if phase == "in" else 1)))
+            paint(canvas, SMOKE_COLOR, smoke_alpha((h, w), centers, p, self.t0 + (0 if phase == "in" else 1)))
         return blend(frame, mask, canvas), False       # you on top of everything

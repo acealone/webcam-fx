@@ -51,14 +51,6 @@ def test_place_clone_clips_at_border():
     assert img.shape == frame.shape and m.shape == mask.shape
 
 
-def test_smoke_deterministic_and_fades():
-    smoke = module().smoke_alpha
-    a, b = smoke((H, W), [(200, 180)], 0.3, 7.0), smoke((H, W), [(200, 180)], 0.3, 7.0)
-    assert np.array_equal(a, b)
-    assert a[180, 200] > 0.5
-    assert smoke((H, W), [(200, 180)], 1.0, 7.0).max() < 0.05
-
-
 def test_timeline_and_sounds(sounds):
     frame, mask = you()
     bg = np.zeros_like(frame)
