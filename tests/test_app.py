@@ -32,3 +32,14 @@ def test_virtual_camera_hint_windows(monkeypatch):
 def test_virtual_camera_hint_linux(monkeypatch):
     monkeypatch.setattr(app, "PLATFORM", "linux")
     assert "sudo modprobe v4l2loopback devices=1 exclusive_caps=1 card_label=webcam-fx" in app.virtual_camera_hint()
+
+
+def test_debug_lines_come_from_gestures_that_offer_them():
+    class Plain:
+        pass
+
+    class Talkative:
+        def debug(self, ctx):
+            return f"seen {ctx}"
+
+    assert app.debug_lines({"a": Plain(), "b": Talkative()}, "x") == ["seen x"]

@@ -25,6 +25,11 @@ def virtual_camera_hint() -> str:
             "sudo modprobe v4l2loopback devices=1 exclusive_caps=1 card_label=webcam-fx")
 
 
+def debug_lines(gestures: dict, ctx) -> list:
+    """What each gesture sees right now (gestures may offer a debug(ctx) -> str), shown in the debug view."""
+    return [g.debug(ctx) for g in gestures.values() if hasattr(g, "debug")]
+
+
 def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.png") -> None:
     # load all plugins first, so a typo in config.toml fails before the camera is opened
     gestures = {t["gesture"]: load_gesture(t["gesture"], config["gestures"].get(t["gesture"], {}))
@@ -106,6 +111,9 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
                 stats = (f"{1000 / max(sum(timing.values()), 1):.0f} fps | "
                          + " ".join(f"{s} {v:.0f}" for s, v in timing.items()) + " ms")
                 cv2.putText(preview, stats, (10, preview.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1)
+                if debug:
+                    for i, line in enumerate(debug_lines(gestures, ctx)):
+                        cv2.putText(preview, line, (10, 50 + 18 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 255), 1)
                 cv2.imshow("webcam-fx preview", preview)
 
                 key = cv2.waitKey(1) & 0xFF

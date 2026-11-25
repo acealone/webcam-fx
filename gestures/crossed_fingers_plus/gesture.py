@@ -1,37 +1,36 @@
-"""Index + middle finger of both hands crossed like a plus sign: one hand vertical, one horizontal."""
+"""Fingers of both hands crossed like a plus sign: one hand's finger(s) vertical, the other's horizontal.
+
+Fuzzy on purpose: any stretched finger counts (thumb included), bent fingers are ignored. Tracking of two
+overlapping hands is imprecise, so angles get a generous tolerance and finger lines are extended a bit.
+"""
 import math
 
-TOLERANCE = 30   # degrees away from exactly vertical / horizontal that still count
+TOLERANCE = 35   # degrees away from exactly vertical / horizontal that still count
+MARGIN = 0.25    # finger lines are extended by this share at both ends
+STRETCHED = 1.1  # tip must be this much farther from the wrist than the middle joint
+FINGERS = ((2, 3, 4), (5, 6, 8), (9, 10, 12), (13, 14, 16), (17, 18, 20))   # (base, middle joint, tip)
 
 
 def _dist(a, b):
     return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2) ** 0.5
 
 
-def two_finger_pose(hand) -> bool:
-    """Index and middle stretched, ring and pinky folded (same rule as two_fingers_forehead)."""
+def finger_lines(hand, w, h):
+    """Pixel lines (base -> tip) of all stretched fingers of a hand."""
     p = hand.landmark
-    ext = lambda tip, pip: _dist(p[tip], p[0]) > _dist(p[pip], p[0]) * 1.15
-    curl = lambda tip, pip: _dist(p[tip], p[0]) < _dist(p[pip], p[0])
-    return ext(8, 6) and ext(12, 10) and curl(16, 14) and curl(20, 18)
+    return [((p[b].x * w, p[b].y * h), (p[t].x * w, p[t].y * h))
+            for b, j, t in FINGERS if _dist(p[t], p[0]) > _dist(p[j], p[0]) * STRETCHED]
 
 
-MARGIN = 0.25    # finger lines are extended by this share at both ends: overlapping hands track imprecisely
+def direction(p0, p1) -> float:
+    """Direction of a pixel line in degrees 0..180: 0 = horizontal, 90 = vertical."""
+    return math.degrees(math.atan2(-(p1[1] - p0[1]), p1[0] - p0[0])) % 180
 
 
-def _segment(hand, w, h, margin=0.0):
-    """Two-finger segment in pixels: from the knuckles (5/9) to the fingertips (8/12), optionally extended."""
-    p = hand.landmark
-    bx, by = (p[5].x + p[9].x) / 2 * w, (p[5].y + p[9].y) / 2 * h
-    tx, ty = (p[8].x + p[12].x) / 2 * w, (p[8].y + p[12].y) / 2 * h
-    ex, ey = (tx - bx) * margin, (ty - by) * margin
-    return (bx - ex, by - ey), (tx + ex, ty + ey)
-
-
-def direction(hand, w, h) -> float:
-    """Finger direction in degrees 0..180 measured in pixels: 0 = horizontal, 90 = vertical."""
-    (x0, y0), (x1, y1) = _segment(hand, w, h)
-    return math.degrees(math.atan2(-(y1 - y0), x1 - x0)) % 180
+def _extend(line, margin):
+    (x0, y0), (x1, y1) = line
+    ex, ey = (x1 - x0) * margin, (y1 - y0) * margin
+    return (x0 - ex, y0 - ey), (x1 + ex, y1 + ey)
 
 
 def segments_cross(p1, p2, q1, q2) -> bool:
@@ -40,12 +39,30 @@ def segments_cross(p1, p2, q1, q2) -> bool:
     return (orient(p1, p2, q1) * orient(p1, p2, q2) < 0) and (orient(q1, q2, p1) * orient(q1, q2, p2) < 0)
 
 
-def _vertical(angle):
-    return abs(angle - 90) <= TOLERANCE
+def _vertical(line):
+    return abs(direction(*line) - 90) <= TOLERANCE
 
 
-def _horizontal(angle):
-    return angle <= TOLERANCE or angle >= 180 - TOLERANCE
+def _horizontal(line):
+    a = direction(*line)
+    return a <= TOLERANCE or a >= 180 - TOLERANCE
+
+
+def analyse(hands, w, h) -> dict:
+    """Everything the gesture looks at, for detect() and the debug view."""
+    lines = [finger_lines(hd, w, h) for hd in hands]
+    crossing = False
+    for i in range(len(lines)):
+        for k in range(i + 1, len(lines)):
+            for la in lines[i]:
+                for lb in lines[k]:
+                    if ((_vertical(la) and _horizontal(lb)) or (_horizontal(la) and _vertical(lb))) \
+                            and segments_cross(*_extend(la, MARGIN), *_extend(lb, MARGIN)):
+                        crossing = True
+    flat = [ln for hand_lines in lines for ln in hand_lines]
+    return {"hands": len(hands), "fingers": [len(x) for x in lines],
+            "vertical": sum(map(_vertical, flat)), "horizontal": sum(map(_horizontal, flat)),
+            "crossing": crossing}
 
 
 class Gesture:
@@ -56,11 +73,11 @@ class Gesture:
 
     def detect(self, ctx) -> bool:
         h, w = ctx.frame.shape[:2]
-        hands = [hd for hd in ctx.hands if two_finger_pose(hd)]
-        for i, a in enumerate(hands):
-            for b in hands[i + 1:]:
-                da, db = direction(a, w, h), direction(b, w, h)
-                if ((_vertical(da) and _horizontal(db)) or (_horizontal(da) and _vertical(db))) \
-                        and segments_cross(*_segment(a, w, h, MARGIN), *_segment(b, w, h, MARGIN)):
-                    return True
-        return False
+        return analyse(ctx.hands, w, h)["crossing"]
+
+    def debug(self, ctx) -> str:
+        h, w = ctx.frame.shape[:2]
+        a = analyse(ctx.hands, w, h)
+        fingers = "/".join(map(str, a["fingers"])) or "-"
+        return (f"plus: hands {a['hands']}, stretched fingers {fingers}, vertical {a['vertical']}, "
+                f"horizontal {a['horizontal']}, crossing {'yes' if a['crossing'] else 'no'}")

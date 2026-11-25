@@ -27,6 +27,16 @@ def make_hand(base, angle_deg, length=90, open_hand=False, w=W, h=H):
     return NS(landmark=lm)
 
 
+def fold(hand, *fingers):
+    """Fold the given fingers ((pip, tip) pairs): tip ends up closer to the wrist than the pip."""
+    lm = list(hand.landmark)
+    w0 = lm[0]
+    for pip, tip in fingers:
+        lm[pip] = NS(x=(lm[pip].x + w0.x) / 2, y=(lm[pip].y + w0.y) / 2)
+        lm[tip] = NS(x=(lm[pip].x * 3 + w0.x) / 4, y=(lm[pip].y * 3 + w0.y) / 4)
+    return NS(landmark=lm)
+
+
 def detect(*hands):
     ctx = NS(hands=list(hands), frame=np.zeros((H, W, 3), np.uint8))
     return load_gesture("crossed_fingers_plus", {}).detect(ctx)
@@ -52,8 +62,28 @@ def test_plus_not_touching_not_detected():
     assert detect(VERTICAL, make_hand((50, 190), 0)) is False
 
 
-def test_open_hands_not_detected():
-    assert detect(make_hand((320, 260), 90, open_hand=True), make_hand((250, 190), 0, open_hand=True)) is False
+def test_open_hands_plus_detected():
+    """Fuzzy: any stretched fingers forming a plus count, not only index + middle."""
+    assert detect(make_hand((320, 260), 90, open_hand=True), make_hand((250, 190), 0, open_hand=True)) is True
+
+
+def test_only_index_fingers_crossing_detected():
+    one_finger = lambda base, angle: fold(make_hand(base, angle), (10, 12))
+    assert detect(one_finger((320, 260), 90), one_finger((250, 190), 0)) is True
+
+
+def test_fists_not_detected():
+    fist = lambda base, angle: fold(make_hand(base, angle), (6, 8), (10, 12))
+    assert detect(fist((320, 260), 90), fist((250, 190), 0)) is False
+
+
+def test_debug_text_explains_what_is_seen():
+    g = load_gesture("crossed_fingers_plus", {})
+    text = g.debug(NS(hands=[VERTICAL], frame=np.zeros((H, W, 3), np.uint8)))
+    assert "hands 1" in text
+    assert "crossing no" in text
+    text = g.debug(NS(hands=[VERTICAL, HORIZONTAL], frame=np.zeros((H, W, 3), np.uint8)))
+    assert "hands 2" in text and "crossing yes" in text
 
 
 def test_direction_uses_pixels():
@@ -62,12 +92,8 @@ def test_direction_uses_pixels():
     spec = importlib.util.spec_from_file_location("cfp", REPO_ROOT / "gestures/crossed_fingers_plus/gesture.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    lm = [NS(x=0.5, y=0.5) for _ in range(21)]
-    for i in (5, 9):
-        lm[i] = NS(x=0.4, y=0.6)
-    for i in (8, 12):
-        lm[i] = NS(x=0.5, y=0.5)                       # relative dx = 0.1, dy = -0.1
-    assert abs(mod.direction(NS(landmark=lm), W, H) - math.degrees(math.atan2(36, 64))) < 0.1
+    # relative dx = 0.1, dy = -0.1 on 640x360 is 64 px right, 36 px up
+    assert abs(mod.direction((0.4 * W, 0.6 * H), (0.5 * W, 0.5 * H)) - math.degrees(math.atan2(36, 64))) < 0.1
 
 
 def test_needs_hands_only():
