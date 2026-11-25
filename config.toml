@@ -1,0 +1,19 @@
+# Webcam settings. 640x480 keeps most USB webcams at 30 fps.
+[camera]
+index = 0
+width = 640
+height = 480
+fps = 30
+
+# Which gesture starts which effect. The first matching trigger wins.
+# hold  = seconds the gesture must be held
+# rearm = seconds the gesture must be gone before it can trigger again
+[[triggers]]
+gesture = "two_fingers_forehead"
+effect = "teleport"
+hold = 0.3
+rearm = 0.5
+
+[effects.teleport]
+fade = 0.35   # seconds to vanish / reappear
+gone = 2.5    # seconds you stay invisible
