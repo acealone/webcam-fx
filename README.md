@@ -48,7 +48,7 @@ Keys in the preview window:
 | Key | Action |
 |-----|--------|
 | `b` | capture a new background (5 s countdown, overwrites `data/background.png`) |
-| `d` | debug view: output, background, person mask side by side, plus what each gesture sees (e.g. how many hands) |
+| `d` | debug view: output, background, person mask side by side, plus what each gesture sees (e.g. how many hands) — also printed to the terminal twice per second, so you can copy it afterwards |
 | `q` | quit |
 
 The green line at the bottom shows fps and how many milliseconds each step takes.

@@ -14,7 +14,7 @@ from core.context import Context, Detectors
 from core.plugins import REPO_ROOT, load_effect, load_gesture
 from core.triggers import Trigger, fire_first
 
-KEYS_HELP = "Preview window: b = capture background (5 s delay), d = debug view, q = quit"
+KEYS_HELP = "Preview window: b = capture background (5 s delay), d = debug view (+ gesture readout here), q = quit"
 PLATFORM = sys.platform
 
 
@@ -28,6 +28,22 @@ def virtual_camera_hint() -> str:
 def debug_lines(gestures: dict, ctx) -> list:
     """What each gesture sees right now (gestures may offer a debug(ctx) -> str), shown in the debug view."""
     return [g.debug(ctx) for g in gestures.values() if hasattr(g, "debug")]
+
+
+class DebugPrinter:
+    """Also writes the gesture readout to the terminal (at most every `interval` s), so it can be copied
+    afterwards - hard to do while both hands are busy making the gesture."""
+
+    def __init__(self, interval: float = 0.5):
+        self.interval, self._last = interval, None
+
+    def maybe_print(self, lines: list, now: float) -> None:
+        if not lines or (self._last is not None and now - self._last < self.interval):
+            return
+        self._last = now
+        stamp = time.strftime("%H:%M:%S", time.localtime(now)) + f".{int(now * 10) % 10}"
+        for line in lines:
+            print(f"{stamp}  {line}", flush=True)
 
 
 def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.png") -> None:
@@ -46,6 +62,7 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
     detectors = Detectors.create()
     background = Background(background_path, frame)
     active, debug, timing = None, False, {}
+    printer = DebugPrinter()
 
     def tick(stage, t0):   # per-stage time in ms (smoothed) for the overlay
         t1 = time.perf_counter()
@@ -112,7 +129,9 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
                          + " ".join(f"{s} {v:.0f}" for s, v in timing.items()) + " ms")
                 cv2.putText(preview, stats, (10, preview.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1)
                 if debug:
-                    for i, line in enumerate(debug_lines(gestures, ctx)):
+                    lines = debug_lines(gestures, ctx)
+                    printer.maybe_print(lines, now)
+                    for i, line in enumerate(lines):
                         cv2.putText(preview, line, (10, 50 + 18 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 255), 1)
                 cv2.imshow("webcam-fx preview", preview)
 

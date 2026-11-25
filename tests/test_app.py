@@ -43,3 +43,20 @@ def test_debug_lines_come_from_gestures_that_offer_them():
             return f"seen {ctx}"
 
     assert app.debug_lines({"a": Plain(), "b": Talkative()}, "x") == ["seen x"]
+
+
+def test_debug_printer_prints_at_most_twice_per_second(capsys):
+    printer = app.DebugPrinter(interval=0.5)
+    printer.maybe_print(["together: hands 1"], now=100.0)
+    printer.maybe_print(["together: hands 2"], now=100.2)      # too soon: skipped
+    printer.maybe_print(["together: hands 2", "plus: hands 2"], now=100.5)
+    lines = capsys.readouterr().out.splitlines()
+    assert len(lines) == 3
+    assert lines[0].endswith("together: hands 1")
+    assert lines[1].endswith("together: hands 2") and lines[2].endswith("plus: hands 2")
+    assert lines[0][:2].isdigit()                               # starts with a time stamp
+
+
+def test_debug_printer_silent_without_lines(capsys):
+    app.DebugPrinter().maybe_print([], now=1.0)
+    assert capsys.readouterr().out == ""
