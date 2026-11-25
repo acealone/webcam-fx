@@ -62,15 +62,23 @@ camera, PipeWire/PulseAudio/ALSA for sound (`pw-play`, `paplay` or `aplay` — u
 
 ### 1. Install the packages
 
-**Arch Linux / CachyOS**
+The kernel module is built for your kernel (DKMS), so the **headers of the kernel you run** are needed.
+
+**Arch Linux**
 ```bash
-# kernel headers must match your kernel: linux-headers (Arch), linux-cachyos-headers (CachyOS default), ...
-sudo pacman -S --needed uv v4l2loopback-dkms v4l-utils linux-headers
+sudo pacman -S --needed uv v4l2loopback-dkms v4l-utils linux-headers   # linux-lts -> linux-lts-headers, linux-zen -> linux-zen-headers
+```
+
+**CachyOS**
+```bash
+sudo pacman -S --needed uv v4l2loopback-dkms v4l-utils linux-cachyos-headers
+# other CachyOS kernels need their own headers, e.g. linux-cachyos-lts -> linux-cachyos-lts-headers
+# (pacman -Q | grep linux-cachyos shows which kernel you have)
 ```
 
 **Ubuntu / Debian**
 ```bash
-sudo apt install v4l2loopback-dkms v4l-utils
+sudo apt install v4l2loopback-dkms v4l-utils linux-headers-$(uname -r)
 curl -LsSf https://astral.sh/uv/install.sh | sh      # or: pipx install uv
 ```
 
