@@ -1,9 +1,13 @@
+import sys
 from types import SimpleNamespace
 
 import numpy as np
 
 from core.compose import blend
 from core.context import Detectors
+import pytest
+
+import core.sound
 from core.sound import play
 
 
@@ -36,6 +40,7 @@ def test_face_uses_cache_when_detection_missing():
     assert det.face(rgb) == (0.1, 0.2, 0.3, 0.4)
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="winsound exists only on Windows")
 def test_play_unplayable_is_silent(tmp_path, monkeypatch):
     import winsound
 
@@ -61,3 +66,38 @@ def test_blend_matches_formula_and_is_fast():
     for _ in range(20):
         blend(person, mask, bg)
     assert (time.perf_counter() - start) / 20 < 0.006, "blend runs on every frame and must stay cheap"
+
+
+@pytest.fixture
+def linux(monkeypatch, tmp_path):
+    monkeypatch.setattr(core.sound, "PLATFORM", "linux")
+    wav = tmp_path / "x.wav"
+    wav.write_bytes(b"RIFF")
+    started = []
+    monkeypatch.setattr(core.sound.subprocess, "Popen", lambda args, **kw: started.append(args))
+    return wav, started
+
+
+def test_linux_uses_first_available_player(linux, monkeypatch):
+    wav, started = linux
+    monkeypatch.setattr(core.sound.shutil, "which", lambda name: "/usr/bin/paplay" if name == "paplay" else None)
+    play(wav)
+    assert started == [["/usr/bin/paplay", str(wav)]]
+
+
+def test_linux_no_player_is_silent(linux, monkeypatch):
+    wav, started = linux
+    monkeypatch.setattr(core.sound.shutil, "which", lambda name: None)
+    play(wav)
+    assert started == []
+
+
+def test_linux_player_failure_is_silent(linux, monkeypatch):
+    wav, _ = linux
+    monkeypatch.setattr(core.sound.shutil, "which", lambda name: "/usr/bin/pw-play")
+
+    def broken(args, **kw):
+        raise OSError("cannot start")
+
+    monkeypatch.setattr(core.sound.subprocess, "Popen", broken)
+    play(wav)
