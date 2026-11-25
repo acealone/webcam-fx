@@ -62,8 +62,8 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
     h, w = frame.shape[:2]
     detectors = Detectors.create()
     background = Background(background_path, frame)
-    if not sound.start():   # one shared audio output: no cut-off sounds, headset stays awake
-        print("No audio output via sounddevice - using the system player for sounds")
+    sound.start(config["sound"]["mixer"])   # one shared audio output: no cut-off sounds, headset stays awake
+    print(sound.status())
     active, debug, timing = None, False, {}
     printer = DebugPrinter()
 
@@ -132,7 +132,7 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
                          + " ".join(f"{s} {v:.0f}" for s, v in timing.items()) + " ms")
                 cv2.putText(preview, stats, (10, preview.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1)
                 if debug:
-                    lines = debug_lines(gestures, ctx)
+                    lines = debug_lines(gestures, ctx) + [sound.status()]
                     printer.maybe_print(lines, now)
                     for i, line in enumerate(lines):
                         cv2.putText(preview, line, (10, 50 + 18 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 255), 1)

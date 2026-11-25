@@ -6,6 +6,11 @@ width = 640
 height = 360
 fps = 30
 
+# Sounds: mixer = true plays all effect sounds through one audio output that stays open (no cut-off
+# sounds). Set it to false to use the system player instead (one sound at a time).
+[sound]
+mixer = true
+
 # Which gesture starts which effect. The first matching trigger wins.
 # hold  = seconds the gesture must be held
 # rearm = seconds the gesture must be gone before it can trigger again

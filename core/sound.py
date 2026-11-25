@@ -55,6 +55,10 @@ def _open_stream(mixer: Mixer):
 
     stream = sd.OutputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32", callback=callback)
     stream.start()
+    try:
+        stream.device_name = sd.query_devices(stream.device)["name"]
+    except Exception:
+        stream.device_name = "?"
     return stream
 
 
@@ -62,24 +66,37 @@ STREAM_FACTORY = _open_stream   # tests replace this, so they never open a real 
 _mixer = None
 _stream = None
 _failed = False
+_reason = ""
 _cache = {}
 
 
-def start() -> bool:
+def start(use_mixer: bool = True) -> bool:
     """Open the shared audio output (once). True if the mixer runs, False -> fallback players are used."""
-    global _mixer, _stream, _failed
+    global _mixer, _stream, _failed, _reason
     if _mixer is not None:
         return True
     if _failed:
+        return False
+    if not use_mixer:
+        _failed, _reason = True, "mixer switched off in config.toml"
         return False
     try:
         mixer = Mixer()
         _stream = STREAM_FACTORY(mixer)
         _mixer = mixer
         return True
-    except Exception:   # no device, no PortAudio, device busy, ...
-        _failed = True
+    except Exception as e:   # no device, no PortAudio, device busy, ...
+        _failed, _reason = True, f"{type(e).__name__}: {e}"
         return False
+
+
+def status() -> str:
+    """One line for the startup message and the debug readout."""
+    if _mixer is None:
+        return f"sound: system player ({_reason or 'mixer not started'})"
+    active = "yes" if getattr(_stream, "active", True) else "NO"
+    return (f"sound: mixer on '{getattr(_stream, 'device_name', '?')}', output active {active}, "
+            f"playing {_mixer.active}")
 
 
 def stop() -> None:
@@ -90,7 +107,7 @@ def stop() -> None:
         except Exception:
             pass
     _mixer = _stream = None
-    _failed = False
+    _failed, _reason = False, ""
 
 
 def load(path: Path) -> np.ndarray:

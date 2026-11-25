@@ -140,3 +140,31 @@ def test_windows_unplayable_is_silent(tmp_path, monkeypatch):
     wav = tmp_path / "broken.wav"
     wav.write_bytes(b"RIFF....not really")
     play(wav)
+
+
+def test_status_names_the_device_and_activity(fake_mixer, monkeypatch):
+    class NamedStream(FakeStream):
+        device_name, active = "Test Headset", True
+
+    monkeypatch.setattr(core.sound, "STREAM_FACTORY", lambda mixer: fake_mixer.setdefault("mixer", mixer) and NamedStream())
+    assert core.sound.start() is True
+    text = core.sound.status()
+    assert "mixer on 'Test Headset'" in text and "active yes" in text and "playing 0" in text
+
+
+def test_status_explains_fallback():
+    core.sound.start()                                   # conftest: no device -> OSError
+    assert core.sound.status().startswith("sound: system player")
+    assert "no audio device in tests" in core.sound.status()
+
+
+def test_mixer_can_be_switched_off(tmp_path, fake_mixer, monkeypatch):
+    assert core.sound.start(use_mixer=False) is False
+    assert "switched off in config.toml" in core.sound.status()
+    wav = write_wav(tmp_path / "x.wav", np.zeros(10))
+    monkeypatch.setattr(core.sound, "PLATFORM", "linux")
+    monkeypatch.setattr(core.sound.shutil, "which", lambda name: "/usr/bin/aplay" if name == "aplay" else None)
+    started = []
+    monkeypatch.setattr(core.sound.subprocess, "Popen", lambda args, **kw: started.append(args))
+    play(wav)
+    assert started == [["/usr/bin/aplay", str(wav)]] and "mixer" not in fake_mixer
