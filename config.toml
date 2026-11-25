@@ -1,8 +1,9 @@
-# Webcam settings. 640x480 keeps most USB webcams at 30 fps.
+# Webcam settings. 640x360 is 16:9 and runs at 30 fps on most USB webcams
+# (larger 16:9 sizes are often only 10-20 fps). After changing the size, press b once.
 [camera]
 index = 0
 width = 640
-height = 480
+height = 360
 fps = 30
 
 # Which gesture starts which effect. The first matching trigger wins.
@@ -14,6 +15,18 @@ effect = "teleport"
 hold = 0.3
 rearm = 0.5
 
+[[triggers]]
+gesture = "crossed_fingers_plus"
+effect = "clones"
+hold = 0.3
+rearm = 0.5
+
 [effects.teleport]
 fade = 0.35   # seconds to vanish / reappear
 gone = 2.5    # seconds you stay invisible
+
+[effects.clones]
+duration = 4.0   # seconds the clones stay
+scale = 0.85     # clone size (they stand a bit further back)
+offset = 0.32    # distance from the centre, as a fraction of the picture width
+smoke = 0.6      # seconds per smoke burst
