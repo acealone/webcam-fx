@@ -8,10 +8,12 @@ Make a gesture in front of your camera and an effect plays on your video:
 | **Two fingers to the forehead** — index and middle finger stretched, ring and pinky folded, fingertips against your forehead | **teleport** — you get torn by vertical slits, vanish for a moment, and come back the same way |
 | **Crossed fingers, plus sign** — index and middle finger stretched on both hands, one hand pointing up, the other sideways, fingers crossing like a `+` (not an `x`) | **clones** — smoke bursts left and right of you, two copies of you appear in it, stay a few seconds and vanish in smoke again |
 
-It runs on Windows. Your webcam goes in, the processed picture goes out through **OBS Virtual Camera**,
-which you select as the camera in Teams.
+It runs on Windows and Linux. Your webcam goes in, the processed picture goes out through a virtual camera
+(**OBS Virtual Camera** on Windows, **v4l2loopback** on Linux), which you select as the camera in Teams.
 
-## Setup (once)
+## Setup on Windows (once)
+
+For Linux see [Linux](#linux).
 
 1. **Install OBS Studio** — it provides the "OBS Virtual Camera" device. OBS itself doesn't need to run.
    ```powershell
@@ -51,6 +53,77 @@ Keys in the preview window:
 The green line at the bottom shows fps and how many milliseconds each step takes.
 After an effect, its gesture is locked until you release it (see `rearm` below), so holding your
 fingers to your head doesn't teleport you again and again.
+
+## Linux
+
+Tested setup: Python 3.12 via [uv](https://docs.astral.sh/uv/), the `v4l2loopback` kernel module as virtual
+camera, PipeWire/PulseAudio/ALSA for sound (`pw-play`, `paplay` or `aplay` — usually already installed).
+`mediapipe` 0.10.21 has no packages for Python 3.13+, which is why uv fetches Python 3.12 for this project.
+
+### 1. Install the packages
+
+**Arch Linux / CachyOS**
+```bash
+# kernel headers must match your kernel: linux-headers (Arch), linux-cachyos-headers (CachyOS default), ...
+sudo pacman -S --needed uv v4l2loopback-dkms v4l-utils linux-headers
+```
+
+**Ubuntu / Debian**
+```bash
+sudo apt install v4l2loopback-dkms v4l-utils
+curl -LsSf https://astral.sh/uv/install.sh | sh      # or: pipx install uv
+```
+
+**Fedora**
+```bash
+# v4l2loopback comes from RPM Fusion (free)
+sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+sudo dnf install v4l2loopback v4l-utils uv
+```
+
+With **Secure Boot** enabled, the freshly built kernel module must be signed (DKMS/akmods guide you through
+enrolling a key), otherwise `modprobe` fails with "Key was rejected by service".
+
+### 2. Create the environment (in the repo folder)
+
+```bash
+uv venv --python 3.12 .venv
+uv pip install -r requirements.txt
+```
+
+### 3. Load the virtual camera
+
+Once (until the next reboot):
+```bash
+sudo modprobe v4l2loopback devices=1 exclusive_caps=1 card_label=webcam-fx
+```
+Permanently:
+```bash
+echo v4l2loopback | sudo tee /etc/modules-load.d/v4l2loopback.conf
+echo "options v4l2loopback devices=1 exclusive_caps=1 card_label=webcam-fx" | sudo tee /etc/modprobe.d/v4l2loopback.conf
+```
+`exclusive_caps=1` is needed so browsers (and Teams in them) list the camera.
+
+### 4. Pick your webcam and run
+
+```bash
+v4l2-ctl --list-devices
+```
+Your webcam shows up with one or more `/dev/videoN` nodes — use the **first** one as `index` in
+`config.toml` (`/dev/video2` → `index = 2`). Don't pick the `webcam-fx` entry: that's the output.
+
+```bash
+.venv/bin/python run.py
+```
+
+### 5. Teams on Linux
+
+Microsoft has no Teams desktop app for Linux anymore. Use Teams in **Chrome / Edge / Firefox**
+(teams.microsoft.com), or the community app **teams-for-linux** (AUR `teams-for-linux-bin`, Flatpak
+`com.github.IsmaelMartinez.teams_for_linux`), and choose **webcam-fx** as camera.
+
+On **Wayland** (KDE, GNOME) the preview window runs through XWayland, which is installed by default.
+If it doesn't open, start with `QT_QPA_PLATFORM=xcb .venv/bin/python run.py`.
 
 ## Configuration — `config.toml`
 
@@ -142,13 +215,13 @@ Then connect it in `config.toml` with a `[[triggers]]` block.
 ## Tests
 
 ```powershell
-.venv\Scripts\python -m pip install -r requirements-dev.txt
-.venv\Scripts\python -m pytest
+.venv\Scripts\python -m pip install -r requirements-dev.txt     # Linux: uv pip install -r requirements-dev.txt
+.venv\Scripts\python -m pytest                                    # Linux: .venv/bin/python -m pytest
 ```
 
 ## Known limits
 
-- Windows only (DirectShow camera, `winsound`).
+- Windows and Linux only (no macOS).
 - Sound effects play on your PC only; other call participants don't hear them yet
   (that needs a virtual audio device).
 - New Teams may not list OBS Virtual Camera on every setup; Teams in the browser does.
