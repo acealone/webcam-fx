@@ -20,5 +20,15 @@ def test_virtual_camera_failure_exits_with_hint(monkeypatch, tmp_path):
     monkeypatch.setattr(app.pyvirtualcam, "Camera", no_virtual_cam)
     with pytest.raises(SystemExit) as err:
         app.run(load_config(REPO_ROOT / "config.toml"), tmp_path / "bg.png")
-    assert "OBS" in str(err.value)
+    assert app.virtual_camera_hint() in str(err.value)
     assert released == [1]                     # webcam is freed again
+
+
+def test_virtual_camera_hint_windows(monkeypatch):
+    monkeypatch.setattr(app, "PLATFORM", "win32")
+    assert "OBS" in app.virtual_camera_hint()
+
+
+def test_virtual_camera_hint_linux(monkeypatch):
+    monkeypatch.setattr(app, "PLATFORM", "linux")
+    assert "sudo modprobe v4l2loopback devices=1 exclusive_caps=1 card_label=webcam-fx" in app.virtual_camera_hint()

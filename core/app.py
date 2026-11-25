@@ -1,4 +1,5 @@
-"""Main loop: webcam -> gestures/effects -> OBS Virtual Camera, plus a preview window."""
+"""Main loop: webcam -> gestures/effects -> virtual camera (OBS on Windows, v4l2loopback on Linux) + preview."""
+import sys
 import time
 from pathlib import Path
 
@@ -14,6 +15,14 @@ from core.plugins import REPO_ROOT, load_effect, load_gesture
 from core.triggers import Trigger, fire_first
 
 KEYS_HELP = "Preview window: b = capture background (5 s delay), d = debug view, q = quit"
+PLATFORM = sys.platform
+
+
+def virtual_camera_hint() -> str:
+    if PLATFORM == "win32":
+        return "Install OBS Studio; if OBS is open, stop its own virtual camera."
+    return ("Load the v4l2loopback module: "
+            "sudo modprobe v4l2loopback devices=1 exclusive_caps=1 card_label=webcam-fx")
 
 
 def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.png") -> None:
@@ -42,8 +51,7 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
         try:
             virtual_cam = pyvirtualcam.Camera(w, h, cam_cfg["fps"], fmt=pyvirtualcam.PixelFormat.BGR)
         except RuntimeError as e:
-            raise SystemExit(f"Could not start OBS Virtual Camera ({e}). Install OBS Studio; "
-                             "if OBS is open, stop its own virtual camera.") from None
+            raise SystemExit(f"Could not start the virtual camera ({e}). {virtual_camera_hint()}") from None
         with virtual_cam as cam:
             print(f"Streaming to {cam.device}. {KEYS_HELP}")
             while True:
