@@ -16,12 +16,16 @@ def two_finger_pose(hand) -> bool:
     return ext(8, 6) and ext(12, 10) and curl(16, 14) and curl(20, 18)
 
 
-def _segment(hand, w, h):
-    """Two-finger segment in pixels: from the knuckles (5/9) to the fingertips (8/12)."""
+MARGIN = 0.25    # finger lines are extended by this share at both ends: overlapping hands track imprecisely
+
+
+def _segment(hand, w, h, margin=0.0):
+    """Two-finger segment in pixels: from the knuckles (5/9) to the fingertips (8/12), optionally extended."""
     p = hand.landmark
-    base = ((p[5].x + p[9].x) / 2 * w, (p[5].y + p[9].y) / 2 * h)
-    tip = ((p[8].x + p[12].x) / 2 * w, (p[8].y + p[12].y) / 2 * h)
-    return base, tip
+    bx, by = (p[5].x + p[9].x) / 2 * w, (p[5].y + p[9].y) / 2 * h
+    tx, ty = (p[8].x + p[12].x) / 2 * w, (p[8].y + p[12].y) / 2 * h
+    ex, ey = (tx - bx) * margin, (ty - by) * margin
+    return (bx - ex, by - ey), (tx + ex, ty + ey)
 
 
 def direction(hand, w, h) -> float:
@@ -57,6 +61,6 @@ class Gesture:
             for b in hands[i + 1:]:
                 da, db = direction(a, w, h), direction(b, w, h)
                 if ((_vertical(da) and _horizontal(db)) or (_horizontal(da) and _vertical(db))) \
-                        and segments_cross(*_segment(a, w, h), *_segment(b, w, h)):
+                        and segments_cross(*_segment(a, w, h, MARGIN), *_segment(b, w, h, MARGIN)):
                     return True
         return False

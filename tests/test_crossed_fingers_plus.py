@@ -72,3 +72,8 @@ def test_direction_uses_pixels():
 
 def test_needs_hands_only():
     assert load_gesture("crossed_fingers_plus", {}).needs == {"hands"}
+
+
+def test_plus_crossing_just_past_fingertips_detected():
+    """Tracking of overlapping hands is imprecise: a crossing a few px beyond the fingertips still counts."""
+    assert detect(VERTICAL, make_hand((250, 165), 0)) is True

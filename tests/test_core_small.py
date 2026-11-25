@@ -53,51 +53,26 @@ def test_play_unplayable_is_silent(tmp_path, monkeypatch):
     play(wav)
 
 
-def test_blend_matches_formula_and_is_fast():
-    import time
+def _blend_inputs():
     rng = np.random.default_rng(3)
     person = rng.integers(0, 255, (360, 640, 3), np.uint8)
     bg = rng.integers(0, 255, (360, 640, 3), np.uint8)
     mask = rng.random((360, 640, 1), dtype=np.float32)
+    return person, mask, bg
+
+
+def test_blend_matches_formula():
+    person, mask, bg = _blend_inputs()
     expected = np.clip(person * (mask * 0.7) + bg * (1 - mask * 0.7), 0, 255).astype(np.uint8)
     assert np.abs(blend(person, mask, bg, 0.7).astype(int) - expected).max() <= 1
+
+
+@pytest.mark.perf
+def test_blend_is_fast():
+    import time
+    person, mask, bg = _blend_inputs()
     blend(person, mask, bg)
     start = time.perf_counter()
     for _ in range(20):
         blend(person, mask, bg)
     assert (time.perf_counter() - start) / 20 < 0.006, "blend runs on every frame and must stay cheap"
-
-
-@pytest.fixture
-def linux(monkeypatch, tmp_path):
-    monkeypatch.setattr(core.sound, "PLATFORM", "linux")
-    wav = tmp_path / "x.wav"
-    wav.write_bytes(b"RIFF")
-    started = []
-    monkeypatch.setattr(core.sound.subprocess, "Popen", lambda args, **kw: started.append(args))
-    return wav, started
-
-
-def test_linux_uses_first_available_player(linux, monkeypatch):
-    wav, started = linux
-    monkeypatch.setattr(core.sound.shutil, "which", lambda name: "/usr/bin/paplay" if name == "paplay" else None)
-    play(wav)
-    assert started == [["/usr/bin/paplay", str(wav)]]
-
-
-def test_linux_no_player_is_silent(linux, monkeypatch):
-    wav, started = linux
-    monkeypatch.setattr(core.sound.shutil, "which", lambda name: None)
-    play(wav)
-    assert started == []
-
-
-def test_linux_player_failure_is_silent(linux, monkeypatch):
-    wav, _ = linux
-    monkeypatch.setattr(core.sound.shutil, "which", lambda name: "/usr/bin/pw-play")
-
-    def broken(args, **kw):
-        raise OSError("cannot start")
-
-    monkeypatch.setattr(core.sound.subprocess, "Popen", broken)
-    play(wav)

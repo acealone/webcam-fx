@@ -219,6 +219,8 @@ Then connect it in `config.toml` with a `[[triggers]]` block.
 .venv\Scripts\python -m pytest                                    # Linux: .venv/bin/python -m pytest
 ```
 
+Timing checks depend on the machine and are skipped by default; run them with `pytest -m perf`.
+
 ## Known limits
 
 - Windows and Linux only (no macOS).

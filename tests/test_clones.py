@@ -95,6 +95,7 @@ def test_loads_via_plugins():
     assert (eff.folder / "poof.wav").is_file()
 
 
+@pytest.mark.perf
 def test_render_fast_enough(monkeypatch):
     """The effect must not drag a 30 fps call down: < 25 ms per frame at 640x360 in every phase."""
     import time
@@ -109,3 +110,20 @@ def test_render_fast_enough(monkeypatch):
         for _ in range(10):
             eff.render(NS(now=t, frame=frame, mask=mask, bg=bg))
         assert (time.perf_counter() - start) / 10 < 0.025, f"too slow at t={t}"
+
+
+def test_clones_land_at_fixed_spots_when_you_are_off_centre(sounds):
+    """You sit 100 px right of centre: the clones still stand at w/2 +- offset*w, where the smoke is."""
+    frame = np.random.default_rng(0).integers(1, 255, (H, W, 3), np.uint8)
+    mask = np.zeros((H, W, 1), np.float32)
+    mask[100:360, 380:460] = 1.0
+    bg = np.zeros_like(frame)
+    eff = load_effect("clones", {"offset": 0.32, "scale": 0.85})
+    eff.start(NS(now=0.0, frame=frame, mask=mask, bg=bg))
+    out, _ = eff.render(NS(now=2.0, frame=frame, mask=mask, bg=bg))
+    visible = out.max(axis=2) > 0
+    visible[:, 380:460] = False                        # ignore you
+    cols = np.nonzero(visible.any(axis=0))[0]
+    left, right = cols[cols < W / 2], cols[cols > W / 2]
+    assert abs(left.mean() - (W / 2 - 0.32 * W)) <= 4
+    assert abs(right.mean() - (W / 2 + 0.32 * W)) <= 4

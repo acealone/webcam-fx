@@ -83,9 +83,14 @@ class Effect:
                 sound.play(self.folder / "poof.wav")
 
         canvas = bg.astype(np.float32)
-        for side in (-1, 1):
-            img, m = place_clone(frame, mask, self.scale, side * self.offset * w)
-            _paint(canvas, img, m[..., 0] * alpha)
+        cols = mask[..., 0].sum(axis=0)
+        if cols.sum() >= 1:                          # nobody in the picture: no clones, just smoke
+            you_x = float((cols * np.arange(w)).sum() / cols.sum())
+            for side in (-1, 1):                     # clones always stand at the smoke spots, wherever you sit
+                target = w / 2 + side * self.offset * w
+                dx = target - (self.scale * you_x + (1 - self.scale) * w / 2)
+                img, m = place_clone(frame, mask, self.scale, dx)
+                _paint(canvas, img, m[..., 0] * alpha)
         if phase != "shown":
             centers = [(w / 2 + side * self.offset * w, 0.55 * h) for side in (-1, 1)]
             _paint(canvas, SMOKE_COLOR, smoke_alpha((h, w), centers, p, self.t0 + (0 if phase == "in" else 1)))
