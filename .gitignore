@@ -1,0 +1,8 @@
+# local environment and runtime data
+.venv/
+data/
+tasks/
+.superpowers/
+__pycache__/
+*.pyc
+.pytest_cache/
