@@ -46,3 +46,18 @@ def test_play_unplayable_is_silent(tmp_path, monkeypatch):
     wav = tmp_path / "broken.wav"
     wav.write_bytes(b"RIFF....not really")
     play(wav)
+
+
+def test_blend_matches_formula_and_is_fast():
+    import time
+    rng = np.random.default_rng(3)
+    person = rng.integers(0, 255, (360, 640, 3), np.uint8)
+    bg = rng.integers(0, 255, (360, 640, 3), np.uint8)
+    mask = rng.random((360, 640, 1), dtype=np.float32)
+    expected = np.clip(person * (mask * 0.7) + bg * (1 - mask * 0.7), 0, 255).astype(np.uint8)
+    assert np.abs(blend(person, mask, bg, 0.7).astype(int) - expected).max() <= 1
+    blend(person, mask, bg)
+    start = time.perf_counter()
+    for _ in range(20):
+        blend(person, mask, bg)
+    assert (time.perf_counter() - start) / 20 < 0.006, "blend runs on every frame and must stay cheap"
