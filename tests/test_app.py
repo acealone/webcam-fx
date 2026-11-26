@@ -78,3 +78,26 @@ def test_run_opens_audio_at_start_and_closes_it(monkeypatch, tmp_path):
     with pytest.raises(SystemExit):
         app.run(load_config(REPO_ROOT / "config.toml"), tmp_path / "bg.png")
     assert calls == ["start", "stop"]
+
+
+def test_preview_is_mirrored_but_sent_frame_is_not():
+    """The preview acts like a mirror; the frame given to it (= what Teams gets) stays unchanged."""
+    out = np.zeros((4, 6, 3), np.uint8)
+    out[:, 0] = 255                            # bright left edge
+    sent = out.copy()
+    preview = app.build_preview(out, out, np.zeros((4, 6, 1), np.float32), debug=False)
+    assert (preview[:, -1] == 255).all() and (preview[:, 0] == 0).all()
+    assert (out == sent).all()
+
+
+def test_debug_preview_mirrors_each_panel_and_keeps_their_order():
+    out = np.zeros((4, 6, 3), np.uint8)
+    out[:, 0] = 255
+    plate = np.full((4, 6, 3), 100, np.uint8)
+    mask = np.zeros((4, 6, 1), np.float32)
+    mask[:, 0] = 1.0
+    preview = app.build_preview(out, plate, mask, debug=True)
+    assert preview.shape == (4, 18, 3)
+    assert (preview[:, 5] == 255).all()        # output panel first, mirrored
+    assert (preview[:, 6:12] == 100).all()     # plate in the middle
+    assert (preview[:, 17] == 255).all()       # mask last, mirrored

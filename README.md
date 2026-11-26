@@ -34,7 +34,7 @@ For Linux see [Linux](#linux).
 .venv\Scripts\python run.py
 ```
 
-1. A preview window opens. Click it, press **`b`** and step out of the picture: 5 seconds later the empty
+1. A preview window opens. It is mirrored like a mirror (Teams still gets the normal, unmirrored picture). Click it, press **`b`** and step out of the picture: 5 seconds later the empty
    room is captured as your background and saved to `data/background.png` (reused on every start).
 2. In Teams: **Settings → Devices → Camera → OBS Virtual Camera**.
    If it's missing, quit Teams completely (tray icon → Quit) and start it again.

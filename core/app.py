@@ -47,6 +47,14 @@ class DebugPrinter:
             print(f"{stamp}  {line}", flush=True)
 
 
+def build_preview(out: np.ndarray, plate: np.ndarray, mask: np.ndarray, debug: bool) -> np.ndarray:
+    """Preview only (not sent to Teams), mirrored like a mirror. Debug view = output | background plate | person mask."""
+    panels = [out]
+    if debug:
+        panels += [plate, cv2.cvtColor((mask[..., 0] * 255).astype(np.uint8), cv2.COLOR_GRAY2BGR)]
+    return np.hstack([cv2.flip(panel, 1) for panel in panels])
+
+
 def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.png") -> None:
     # load all plugins first, so a typo in config.toml fails before the camera is opened
     gestures = {t["gesture"]: load_gesture(t["gesture"], config["gestures"].get(t["gesture"], {}))
@@ -110,11 +118,7 @@ def run(config: dict, background_path: Path = REPO_ROOT / "data" / "background.p
                 cam.send(out)
                 t0 = tick("compose", t0)
 
-                # preview only (not sent to Teams): debug view = output | background plate | person mask
-                preview = out
-                if debug:
-                    mask_img = cv2.cvtColor((mask[..., 0] * 255).astype(np.uint8), cv2.COLOR_GRAY2BGR)
-                    preview = np.hstack([out, background.plate, mask_img])
+                preview = build_preview(out, background.plate, mask, debug)
                 preview = cv2.resize(preview, None, fx=0.33 if debug else 0.5, fy=0.33 if debug else 0.5)
                 countdown = background.countdown(now)
                 locked = [t for t in triggers if t.locked]
